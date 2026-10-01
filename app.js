@@ -23,17 +23,15 @@ function el(tag, cls, text) {
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
-/* 图片降级链：原图 → wsrv.nl 代理 → onFail 兜底 */
-function proxiedImg(url) {
-  return 'https://images.weserv.nl/?url=' + encodeURIComponent(String(url).replace(/^https?:\/\//, ''));
-}
+/* 图片降级链：原图 → wsrv.nl 代理 → onFail 兜底（proxiedImg 定义在 bangumi.js） */
 function smartImg(src, alt, onFail) {
   const img = new Image();
   img.loading = 'lazy';
   img.alt = alt || '';
+  const alreadyProxied = /^https?:\/\/images\.weserv\.nl/.test(src || '');
   let stage = 0;
   img.onerror = () => {
-    if (stage === 0 && src) {
+    if (stage === 0 && src && !alreadyProxied) {
       stage = 1;
       img.src = proxiedImg(src);
     } else if (onFail) {
@@ -585,14 +583,53 @@ $('#btnFillStop').onclick = () => { fillAbort = true; };
 async function startFill() {
   const missing = state.entries.filter(e => !e.poster);
   if (!missing.length) { toast('所有条目都有封面啦'); return; }
-  const ok = await confirmDlg('自动补全封面', `将为 ${missing.length} 个缺少封面的条目自动搜索封面（约需 ${Math.ceil(missing.length * 1.6 / 60)} 分钟），过程中请保持网络畅通。`, '开始');
+  const ok = await confirmDlg('自动补全封面', `将为 ${missing.length} 个缺少封面的条目自动匹配海报（动漫类走本地中文索引，速度很快），过程中请保持网络畅通。`, '开始');
   if (!ok) return;
   fillAbort = false;
   $('#btnFillPosters').classList.add('hidden');
   $('#btnFillStop').classList.remove('hidden');
   $('#fillWrap').classList.remove('hidden');
-  let done = 0, got = 0, missStreak = 0;
-  for (const e of missing) {
+
+  const isAni = e => e.type === 'anime' || e.type === 'movie';
+  const aniEntries = missing.filter(isAni);
+  const restEntries = missing.filter(e => !isAni(e));
+  let got = 0;
+
+  // —— 快路径：本地中文索引 + AniList 批量封面（动漫/剧场版）——
+  if (aniEntries.length) {
+    $('#fillText').textContent = '正在加载中文索引（首次约 8MB，之后有缓存）…';
+    try {
+      const pairs = [];
+      for (const e of aniEntries) {
+        if (fillAbort) break;
+        const hits = await bgdSearch(bgCleanKeyword(e.title), 1);
+        if (hits[0] && hits[0].mid) pairs.push([e, hits[0]]);
+      }
+      for (let i = 0; i < pairs.length; i += 40) {
+        if (fillAbort) break;
+        const batch = pairs.slice(i, i + 40);
+        const { covers, eps } = await anilistCoversByMal(batch.map(([, h]) => h.mid));
+        for (const [e, hit] of batch) {
+          if (covers[hit.mid]) {
+            e.poster = covers[hit.mid];
+            e.bangumiId = hit.bid;
+            if (!e.totalEp && eps[hit.mid]) e.totalEp = eps[hit.mid];
+            e.updatedAt = Date.now();
+            got++;
+          }
+        }
+        $('#fillBar').style.width = (Math.min(95, (i + batch.length) / missing.length * 100)).toFixed(1) + '%';
+        $('#fillText').textContent = `索引匹配 ${got} 张封面…`;
+        save();
+      }
+      render();
+    } catch (e) { /* 索引不可用，落到慢路径 */ }
+  }
+
+  // —— 慢路径：逐条网络搜索（小说/漫画/真人影视，或索引失败的）——
+  const slowList = restEntries.concat(aniEntries.filter(e => !e.poster));
+  let done = 0, missStreak = 0;
+  for (const e of slowList) {
     if (fillAbort) break;
     let results = await bgSearch(e.title, e.type || 'anime');
     if (!results.length) results = await bgSearch(bgCleanKeyword(e.title), e.type || 'anime');
@@ -608,14 +645,14 @@ async function startFill() {
       missStreak++;
     }
     done++;
-    $('#fillBar').style.width = (done / missing.length * 100).toFixed(1) + '%';
-    $('#fillText').textContent = `${done}/${missing.length} · 成功匹配 ${got} 张封面`;
+    $('#fillBar').style.width = (95 + done / slowList.length * 5).toFixed(1) + '%';
+    $('#fillText').textContent = `完成 ${done}/${slowList.length} · 成功匹配 ${got} 张封面`;
     if (done % 12 === 0) { save(); render(); }
-    // 公共代理有速率限制：匹配失败连续出现时退避，平时保持温和节奏
     if (missStreak >= 6) { missStreak = 0; await new Promise(r => setTimeout(r, 8000)); }
     else await new Promise(r => setTimeout(r, 1400));
   }
   save(); render();
+  $('#fillBar').style.width = '100%';
   $('#btnFillStop').classList.add('hidden');
   $('#btnFillPosters').classList.remove('hidden');
   toast(fillAbort ? `已停止，本次匹配 ${got} 张封面` : `补全完成！成功匹配 ${got}/${missing.length} 张封面`);

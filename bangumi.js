@@ -1,8 +1,13 @@
-/* ===== 网络搜索：Bangumi（直连→公共代理）→ Kitsu 兜底 =====
+/* ===== 网络搜索：Bangumi（直连/镜像/公共代理）→ 中文索引+AniList → Kitsu 兜底 =====
    国内网络 bgm.tv 常不可达：
    - API 走 allorigins.win 公共 CORS 代理（旧版 GET 搜索接口）
+   - 动漫类作品优先走 bgindex.js 的本地中文索引 + AniList 封面（不依赖 bgm.tv）
    - 图片加载失败时自动经 images.weserv.nl 代理重试（见 app.js 的 smartImg） */
 const BG_TYPE = { anime: 2, movie: 2, novel: 1, manga: 1, real: 3 };
+
+function proxiedImg(url) {
+  return 'https://images.weserv.nl/?url=' + encodeURIComponent(String(url).replace(/^https?:\/\//, ''));
+}
 
 async function fetchT(url, opts, ms) {
   const ctrl = new AbortController();
@@ -111,22 +116,53 @@ async function bgSearch(keyword, type) {
     }
   }
 
-  // 1) Bangumi 直连
-  if (!healthSkipped('bangumi')) {
-    const r1 = await searchBangumiDirect(keyword, bt);
+  // 1) 中文索引本地匹配 + AniList 封面（动漫/剧场版，不依赖 bgm.tv）
+  if (type === 'anime' || type === 'movie') {
+    const r1 = await searchViaIndex(keyword, type);
     if (r1) return r1;
   }
-  // 2) Bangumi 经公共代理（不稳定，尽力而为）
-  if (!healthSkipped('allorigins')) {
-    const r2 = await searchBangumiProxy(keyword, bt);
+  // 2) Bangumi 直连
+  if (!healthSkipped('bangumi')) {
+    const r2 = await searchBangumiDirect(keyword, bt);
     if (r2) return r2;
   }
-  // 3) Kitsu 兜底（动漫/漫画）
+  // 3) Bangumi 经公共代理
+  if (!healthSkipped('allorigins')) {
+    const r3 = await searchBangumiProxy(keyword, bt);
+    if (r3) return r3;
+  }
+  // 4) Kitsu 兜底（动漫/漫画）
   if (type === 'anime' || type === 'manga') {
-    const r3 = await searchKitsu(keyword, type === 'manga' ? 'manga' : 'anime');
-    if (r3 && r3.length) return r3;
+    const r4 = await searchKitsu(keyword, type === 'manga' ? 'manga' : 'anime');
+    if (r4 && r4.length) return r4;
   }
   return [];
+}
+
+/* 索引命中则用 AniList 补封面和集数；完全没命中返回 null 继续走网络搜索 */
+async function searchViaIndex(keyword, type) {
+  const kw = bgCleanKeyword(keyword);
+  let hits;
+  try {
+    hits = await bgdSearch(kw, 8);
+  } catch (e) {
+    return null;
+  }
+  if (!hits.length) return null;
+  const mids = hits.map(h => h.mid).filter(Boolean);
+  const { covers, eps } = await anilistCoversByMal(mids);
+  const results = hits.map(h => ({
+    id: h.bid || (h.mid ? 'mal-' + h.mid : 'idx-' + bgdNorm(h.jp)),
+    title: h.cn || h.jp,
+    orig: h.jp,
+    /* AniList 封面用原图：其图床国内可直连，且 wsrv 拒绝代理该域名 */
+    poster: (h.mid && covers[h.mid]) ? covers[h.mid] : null,
+    year: h.year,
+    eps: (h.mid && eps[h.mid]) || null,
+    src: 'index'
+  }));
+  // 至少有一个带封面才算成功，否则回落到网络搜索
+  return results.some(r => r.poster) ? results : null;
 }
 
 async function searchBangumiBase(base, keyword, bt, healthKey) {
@@ -168,7 +204,7 @@ async function bgSubject(id) {
 function bgCleanKeyword(title) {
   const t = title
     .replace(/第[一二三四五六七八九十0-9]+\s*[季部].*$/, '')
-    .replace(/(剧场版|OVA|OAD|SP|完结篇|始动篇|第一季|第二季|第三季|第四季|第五季)/gi, '')
+    .replace(/(剧场版|OVA|OAD|SP|总集篇|外传|后日谈|完结篇|始动篇|第一季|第二季|第三季|第四季|第五季)/gi, '')
     .replace(/(全|共)\d+集/g, '')
     .replace(/[（(【\[][^）)】\]]*[）)】\]]/g, '')
     .replace(/\s+/g, ' ')

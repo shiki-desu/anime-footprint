@@ -54,9 +54,16 @@ python tools/convert_works_txt.py 旧记录.txt 输出.txt
 
 ## 海报匹配与网络说明
 
-搜索链路：**Bangumi（api.bgm.tv）→ Kitsu 兜底**，图片加载失败会自动经 images.weserv.nl 代理重试。
+封面匹配链路（按顺序自动降级）：
 
-部分国内网络无法直连 `api.bgm.tv`，此时自动匹配率会下降。解决办法（二选一）：
+1. **中文本地索引**（动漫/剧场版）：首次使用会从 unpkg 下载 [bangumi-data](https://github.com/bangumi-data/bangumi-data) 索引（约 8MB，之后缓存 7 天），在本地做中文/模糊匹配，再经 AniList 接口按 MAL id 批量取封面，全程不依赖 bgm.tv，速度快、命中率高；
+2. **Bangumi（api.bgm.tv）**：直连；可在「外观设置」配置自建镜像；
+3. **公共 CORS 代理**：尽力而为，不太稳定；
+4. **Kitsu**：兜底（英文/日文匹配较好，中文有限）。
+
+图片加载失败时会自动经 images.weserv.nl 代理重试，小说 / 漫画 / 真人影视类目暂无本地索引，主要依赖 Bangumi / Kitsu。
+
+部分国内网络无法直连 `api.bgm.tv`（此时动漫封面走索引不受影响，但小说、真人影视的匹配率会下降）。解决办法（二选一）：
 
 1. **部署一个自己的镜像（推荐，5 分钟）**：在 [Cloudflare Workers](https://workers.cloudflare.com/) 免费创建一个 Worker，粘贴以下代码并部署，然后在应用「外观设置 → Bangumi 镜像地址」里填入你的 `https://xxx.workers.dev`：
 
@@ -96,7 +103,8 @@ python tools/convert_works_txt.py 旧记录.txt 输出.txt
 index.html            页面结构
 style.css             主题与样式（CSS 变量驱动，深浅色 / 主题色 / 封面大小）
 app.js                主逻辑：状态、渲染、交互、导入导出、批量补全
-bangumi.js            海报搜索链路（Bangumi → 镜像 → Kitsu）与图片代理降级
+bangumi.js            海报搜索链路（镜像 / Bangumi / 代理 / Kitsu）与图片代理降级
+bgindex.js            bangumi-data 本地中文索引（IndexedDB 缓存）+ AniList 批量封面
 importer.js           足迹格式 / JSON 导入解析
 tools/convert_works_txt.py   旧记录 → 足迹格式 转换脚本
 examples/作品_足迹格式.txt    真实转换示例（266 条）
