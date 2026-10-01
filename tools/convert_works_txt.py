@@ -111,6 +111,7 @@ def parse_line(raw):
         s = s.replace(m.group(0), '')
 
     finished = ('完' in s) or rewatched
+    had_ellipsis = bool(re.search(r'[。．]{2,}|…+|\.{3,}', s))
     progress = None
     if not finished:
         # 没看完：提取"看到第N集"
@@ -170,8 +171,11 @@ def parse_line(raw):
     t = re.sub(r'\s+', ' ', t).strip(STRIP_CHARS)
     if not t:
         return None
+    # 状态判定：带"完"或[N刷] = 看完；带"。。。"或"第N集"（且没写完）= 在看；
+    # 什么都没写 = 看完（这份文件是看过的作品流水账，未标记默认已看）
+    watching = (not finished) and (had_ellipsis or progress is not None)
     return {'indent': indent, 'title': t,
-            'status': 'finished' if finished else 'watching',
+            'status': 'watching' if watching else 'finished',
             'progress': progress, 'score': score, 'notes': notes}
 
 

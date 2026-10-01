@@ -53,7 +53,8 @@ function parseFootprintText(text) {
     const st = parts[1] || '';
     if (st.includes('完')) e.status = 'finished';
     else if (/想看|未看|计划/.test(st)) e.status = 'planned';
-    else e.status = 'watching';
+    else if (/在看/.test(st) || st.match(/第?\s*[0-9一二三四五六七八九十]{1,3}\s*[集话]/)) e.status = 'watching';
+    else e.status = 'finished';   // 无状态标记：默认视为已看完
     const pm = st.match(/第?\s*([0-9一二三四五六七八九十]{1,3})\s*[集话]/);
     if (pm) e.currentEp = cnToInt(pm[1]);
     if (parts[2]) {
