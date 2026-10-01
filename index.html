@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-poster="m">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>动漫足迹 · 我的追番记录</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">🐾 动漫足迹</div>
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input id="searchBox" type="search" placeholder="搜索标题 / 分组 / 备注…" autocomplete="off">
+  </div>
+  <select id="sortSel" class="sort-sel" title="排序方式">
+    <option value="added">按记录顺序</option>
+    <option value="updated">按最近改动</option>
+    <option value="score">按评分优先</option>
+    <option value="title">按标题</option>
+  </select>
+  <button id="btnView" class="btn btn-ghost" title="切换分组视图">🗂 分组</button>
+  <button id="btnAdd" class="btn btn-primary">＋ 添加</button>
+  <div class="more-wrap">
+    <button id="btnMore" class="btn btn-ghost" title="更多">⋯</button>
+    <div id="moreMenu" class="menu hidden">
+      <button id="btnSettings" class="menu-item">🎨 外观设置</button>
+      <button id="btnData" class="menu-item">📥 导入 / 导出</button>
+      <button id="btnFill" class="menu-item">🖼 一键补全封面</button>
+      <hr>
+      <button id="btnClear" class="menu-item danger">🗑 清空全部数据</button>
+    </div>
+  </div>
+</header>
+
+<nav class="filters">
+  <div id="statusChips" class="chip-row"></div>
+  <div id="typeChips" class="chip-row"></div>
+</nav>
+
+<main id="main"></main>
+<div id="stats" class="stats"></div>
+
+<!-- 添加（搜索匹配） -->
+<div class="overlay hidden" id="modalAdd">
+  <div class="dialog">
+    <div class="dialog-head">
+      <h2>添加作品</h2>
+      <button class="icon-btn" data-close="modalAdd">✕</button>
+    </div>
+    <div class="dialog-body">
+      <p class="hint">输入名字，自动从网络匹配作品信息和海报（Bangumi）</p>
+      <div class="search-line">
+        <input id="addName" type="text" placeholder="例如：葬送的芙莉莲" autocomplete="off">
+        <button id="addSearchBtn" class="btn btn-primary">搜索</button>
+      </div>
+      <div id="addResults" class="result-grid"></div>
+      <div class="manual-line">找不到？<a href="#" id="addManual">直接手动添加 →</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑 / 新建条目 -->
+<div class="overlay hidden" id="modalEdit">
+  <div class="dialog dialog-lg">
+    <div class="dialog-head">
+      <h2 id="edHead">编辑作品</h2>
+      <button class="icon-btn" data-close="modalEdit">✕</button>
+    </div>
+    <div class="dialog-body">
+      <div class="edit-grid">
+        <div class="poster-col">
+          <div id="edPosterBox" class="poster-preview"></div>
+          <input id="edPosterUrl" type="text" placeholder="封面图片链接（可留空）">
+          <button id="edSearchToggle" class="btn btn-ghost btn-block">🔍 网络搜索封面</button>
+          <div id="edSearchArea" class="hidden">
+            <div class="search-line">
+              <input id="edSearchName" type="text" placeholder="按名字搜索…" autocomplete="off">
+              <button id="edSearchBtn" class="btn btn-primary">搜</button>
+            </div>
+            <div id="edSearchResults" class="result-grid result-sm"></div>
+          </div>
+        </div>
+        <div class="fields-col">
+          <label class="field"><span>标题 *</span>
+            <input id="edTitle" type="text" placeholder="作品名">
+          </label>
+          <div class="field-row">
+            <label class="field"><span>分组 / 系列</span>
+              <input id="edGroup" type="text" list="groupList" placeholder="例如：Fate系列">
+              <datalist id="groupList"></datalist>
+            </label>
+            <label class="field"><span>类型</span>
+              <select id="edType">
+                <option value="anime">动漫</option>
+                <option value="movie">剧场版</option>
+                <option value="real">真人影视</option>
+                <option value="novel">小说</option>
+                <option value="manga">漫画</option>
+              </select>
+            </label>
+          </div>
+          <div class="field"><span>状态</span>
+            <div class="segment" id="edStatus">
+              <button data-v="watching">在看</button>
+              <button data-v="finished">看完</button>
+              <button data-v="planned">想看</button>
+            </div>
+          </div>
+          <div class="field-row">
+            <label class="field"><span>看到第几集</span>
+              <input id="edCur" type="number" min="0" step="1" placeholder="—">
+            </label>
+            <label class="field"><span>总集数</span>
+              <input id="edTotal" type="number" min="0" step="1" placeholder="—">
+            </label>
+          </div>
+          <div class="field"><span>我的评分</span>
+            <div class="score-line">
+              <input id="edScore" type="range" min="0" max="10" step="0.5" value="0">
+              <b id="edScoreVal">未评分</b>
+              <button id="edScoreClear" class="icon-btn" title="清除评分">✕</button>
+            </div>
+          </div>
+          <label class="field"><span>备注</span>
+            <textarea id="edComment" rows="2" placeholder="神作？二刷？烂尾？（可选）"></textarea>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button id="edDelete" class="btn btn-danger hidden">删除</button>
+      <span class="spacer"></span>
+      <button id="edCancel" class="btn btn-ghost" data-close="modalEdit">取消</button>
+      <button id="edSave" class="btn btn-primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 导入 / 导出 -->
+<div class="overlay hidden" id="modalData">
+  <div class="dialog">
+    <div class="dialog-head">
+      <h2>导入 / 导出</h2>
+      <button class="icon-btn" data-close="modalData">✕</button>
+    </div>
+    <div class="dialog-body">
+      <h3 class="sec-title">导出备份</h3>
+      <button id="btnExport" class="btn btn-ghost">⬇ 下载 JSON 备份</button>
+
+      <h3 class="sec-title">导入</h3>
+      <p class="hint">支持 <b>足迹格式</b> 文本或本工具导出的 JSON。足迹格式：</p>
+      <pre class="fmt-example"># 分组名（可选）
+标题 | 状态 | 评分 | 备注
+命运石之门 | 完 | 10 | 神作，二刷
+无职转生 第三季 | 在看 第13集</pre>
+      <input id="importFile" type="file" accept=".txt,.json,.md">
+      <textarea id="importText" rows="5" placeholder="…或直接把内容粘贴到这里"></textarea>
+      <div class="radio-line">
+        <label><input type="radio" name="importMode" value="append" checked> 追加到现有记录</label>
+        <label><input type="radio" name="importMode" value="replace"> 覆盖现有记录</label>
+      </div>
+      <div id="importPreview" class="preview hidden"></div>
+      <div class="btn-line">
+        <button id="btnImportPreview" class="btn btn-ghost">解析预览</button>
+        <button id="btnImportConfirm" class="btn btn-primary hidden">确认导入</button>
+      </div>
+
+      <h3 class="sec-title">自动补全封面</h3>
+      <p class="hint">为缺少封面的条目自动搜索并匹配海报。若匹配率低，多半是网络无法直连 Bangumi，请先在「外观设置」里配置镜像地址（方法见项目 README）。</p>
+      <div class="btn-line">
+        <button id="btnFillPosters" class="btn btn-ghost">🖼 开始补全</button>
+        <button id="btnFillStop" class="btn btn-danger hidden">停止</button>
+      </div>
+      <div id="fillWrap" class="progress hidden"><div id="fillBar"></div></div>
+      <div id="fillText" class="hint"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 外观设置 -->
+<div class="overlay hidden" id="modalSettings">
+  <div class="dialog dialog-sm">
+    <div class="dialog-head">
+      <h2>外观设置</h2>
+      <button class="icon-btn" data-close="modalSettings">✕</button>
+    </div>
+    <div class="dialog-body">
+      <div class="field"><span>外观模式</span>
+        <div class="segment" id="setMode">
+          <button data-v="auto">自动</button>
+          <button data-v="light">浅色</button>
+          <button data-v="dark">深色</button>
+        </div>
+      </div>
+      <div class="field"><span>主题色</span>
+        <div class="swatches" id="setSwatches"></div>
+        <div class="custom-color">
+          自定义 <input type="color" id="setCustomColor" value="#6366f1">
+        </div>
+      </div>
+      <div class="field"><span>封面大小</span>
+        <div class="segment" id="setPoster">
+          <button data-v="s">小</button>
+          <button data-v="m">中</button>
+          <button data-v="l">大</button>
+        </div>
+      </div>
+      <div class="field"><span>Bangumi 镜像地址（可选）</span>
+        <input id="setMirror" type="text" placeholder="例如：https://your-worker.workers.dev" style="padding: 9px 11px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-soft); color: var(--text); font-size: 13px; outline: none;">
+        <span style="font-weight: 400; font-size: 12px; line-height: 1.6;">网络无法直连 Bangumi（api.bgm.tv）时，可填入自己的反代镜像地址，部署方法见项目 README。留空则自动尝试直连并回退到 Kitsu。</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 通用确认框 -->
+<div class="overlay hidden" id="modalConfirm">
+  <div class="dialog dialog-sm">
+    <div class="dialog-head"><h2 id="cfTitle">确认</h2></div>
+    <div class="dialog-body"><p id="cfMsg"></p></div>
+    <div class="dialog-foot">
+      <span class="spacer"></span>
+      <button id="cfCancel" class="btn btn-ghost">取消</button>
+      <button id="cfOk" class="btn btn-primary">确定</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="bangumi.js"></script>
+<script src="importer.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
