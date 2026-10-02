@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 .zcodeignore
+tools/missing_tmp.json
+anilist_tmp.json
+real_posters_tmp.json
