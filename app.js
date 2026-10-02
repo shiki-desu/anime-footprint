@@ -28,6 +28,7 @@ function smartImg(src, alt, onFail) {
   const img = new Image();
   img.loading = 'lazy';
   img.alt = alt || '';
+  img.addEventListener('load', () => img.classList.add('loaded'));
   const alreadyProxied = /^https?:\/\/images\.weserv\.nl/.test(src || '');
   let stage = 0;
   img.onerror = () => {
@@ -106,10 +107,38 @@ function visibleEntries() {
   return list;
 }
 
+/* -- 卡片入场交错动画：进入视口后上浮显现 -- */
+const cardObserver = 'IntersectionObserver' in window
+  ? new IntersectionObserver(entries => {
+      for (const en of entries) {
+        if (en.isIntersecting) {
+          en.target.classList.add('in');
+          cardObserver.unobserve(en.target);
+        }
+      }
+    }, { rootMargin: '80px 0px' })
+  : null;
+
+function observeCards() {
+  const cards = $$('.card:not(.in)');
+  if (!cards.length) return;
+  if (!cardObserver) {
+    cards.forEach(c => c.classList.add('in'));
+    return;
+  }
+  cards.forEach((c, i) => {
+    c.style.setProperty('--d', (i % 7) * 45 + 'ms');
+    cardObserver.observe(c);
+  });
+  // 兜底：个别环境 IntersectionObserver 不触发，1.6s 后全部显现
+  setTimeout(() => $$('.card:not(.in)').forEach(c => c.classList.add('in')), 1600);
+}
+
 function render() {
   renderChips();
   renderMain();
   applySettings();
+  observeCards();
 }
 
 function chip(label, count, active, onclick) {
@@ -165,13 +194,23 @@ function cardEl(e) {
   cover.appendChild(el('span', 'badge status-' + e.status, STATUS_LABELS[e.status] || '在看'));
   if (e.score != null && isFinite(+e.score)) {
     const v = +e.score;
-    cover.appendChild(el('span', 'badge score', '★ ' + (Number.isInteger(v) ? v : v.toFixed(1))));
+    const ring = el('div', 'score-ring');
+    ring.style.setProperty('--pct', Math.round(Math.min(100, Math.max(0, v / 10 * 100))));
+    ring.appendChild(el('i', null, Number.isInteger(v) ? String(v) : v.toFixed(1)));
+    cover.appendChild(ring);
   }
   if (e.status === 'watching') {
     const b = el('button', 'ep-plus', '+1');
     b.title = '集数 +1';
     b.onclick = ev => { ev.stopPropagation(); bumpEp(e); };
     cover.appendChild(b);
+  }
+  const tipText = e.comment || (e.group ? '#' + e.group : '');
+  if (tipText) {
+    const tip = el('div', 'cover-tip');
+    tip.appendChild(document.createTextNode(e.comment ? '「' + e.comment + '」' : ''));
+    if (!e.comment && e.group) tip.appendChild(el('b', null, '#' + e.group));
+    cover.appendChild(tip);
   }
   const info = el('div', 'info');
   info.appendChild(el('h3', null, e.title));
@@ -603,7 +642,9 @@ async function startFill() {
       for (const e of aniEntries) {
         if (fillAbort) break;
         const hits = await bgdSearch(bgCleanKeyword(e.title), 1);
-        if (hits[0] && hits[0].mid) pairs.push([e, hits[0]]);
+        const hit = hits[0];
+        // 模糊匹配容易误伤，只在明确等级或相似度足够高时才采用
+        if (hit && hit.mid && (hit.score >= 1 || hit.dice >= 0.62)) pairs.push([e, hit]);
       }
       for (let i = 0; i < pairs.length; i += 40) {
         if (fillAbort) break;
@@ -706,6 +747,10 @@ $$('#setMode button').forEach(b => b.onclick = () => { state.settings.mode = b.d
 $$('#setPoster button').forEach(b => b.onclick = () => { state.settings.poster = b.dataset.v; save(); applySettings(); });
 
 /* ---------- 顶栏交互 ---------- */
+window.addEventListener('scroll', () => {
+  document.querySelector('.topbar').classList.toggle('scrolled', window.scrollY > 8);
+}, { passive: true });
+
 $('#searchBox').addEventListener('input', () => {
   clearTimeout($('#searchBox')._t);
   $('#searchBox')._t = setTimeout(() => {

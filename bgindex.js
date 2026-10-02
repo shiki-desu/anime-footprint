@@ -112,7 +112,7 @@ async function bgdSearch(keyword, limit) {
   if (!q) return [];
   const tiers = { 4: [], 3: [], 2: [], 1: [], 0: [] };
   for (const it of index) {
-    let score = 0;
+    let score = 0, dice = 0;
     for (const k of it.keys) {
       if (k === q) { score = 4; break; }
       if (k.startsWith(q)) { score = Math.max(score, 3); continue; }
@@ -121,13 +121,25 @@ async function bgdSearch(keyword, limit) {
       // 字符二元组模糊匹配：容忍错别字和译名差异（"玲芽之旅"→"铃芽之旅"）
       if (q.length >= 4 && k.length >= 4) {
         const d = bgdDice(q, k);
-        if (d >= 0.52) score = Math.max(score, 0.5 + d / 2);
+        if (d >= 0.52) {
+          score = Math.max(score, 0.5 + d / 2);
+          dice = Math.max(dice, d);
+        }
       }
     }
-    if (score) tiers[score >= 4 ? 4 : score >= 3 ? 3 : score >= 2 ? 2 : score >= 1 ? 1 : 0].push({ it, score });
+    if (score) {
+      it._score = score;
+      it._dice = dice;
+      tiers[score >= 4 ? 4 : score >= 3 ? 3 : score >= 2 ? 2 : score >= 1 ? 1 : 0].push({ it, score });
+    }
   }
   tiers[0].sort((a, b) => b.score - a.score);
-  return [...tiers[4], ...tiers[3], ...tiers[2], ...tiers[1], ...tiers[0]].map(x => x.it).slice(0, limit);
+  return [...tiers[4], ...tiers[3], ...tiers[2], ...tiers[1], ...tiers[0]].map(x => {
+    const r = x.it;
+    r.score = x.score;
+    r.dice = r._dice || 0;
+    return r;
+  }).slice(0, limit);
 }
 
 /* ---------- AniList 封面（按 MAL id 批量） ---------- */

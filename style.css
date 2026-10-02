@@ -374,3 +374,169 @@ input[type="file"] { font-size: 13px; color: var(--muted); margin-bottom: 10px; 
   #edPosterUrl { flex: 1; min-width: 120px; }
   .sort-sel { display: none; }
 }
+
+/* ===== 打磨与动效层（参考 AniList / Linear） ===== */
+
+/* -- 1. 氛围光斑缓慢漂浮 -- */
+body::before, body::after {
+  animation: orb-drift 26s ease-in-out infinite alternate;
+}
+body::after {
+  content: "";
+  position: fixed; z-index: -1; inset: 0;
+  background: radial-gradient(640px 400px at 108% 88%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%);
+  animation-duration: 34s;
+  animation-direction: alternate-reverse;
+  pointer-events: none;
+}
+@keyframes orb-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(-3%, 2.5%, 0) scale(1.08); }
+}
+
+/* -- 2. 卡片入场：交错上浮 -- */
+.card { opacity: 0; transform: translateY(16px); }
+.card.in {
+  opacity: 1; transform: none;
+  transition: opacity .55s ease, transform .55s cubic-bezier(.22, 1, .36, 1);
+  transition-delay: var(--d, 0ms);
+}
+
+/* -- 3. 卡片悬停：上浮 + 海报微缩放 + 底部信息浮层 -- */
+.cover { transition: transform .22s cubic-bezier(.22, 1, .36, 1), box-shadow .22s ease; }
+.cover::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 52%, rgba(5, 7, 13, .88));
+  opacity: 0; transition: opacity .25s ease;
+}
+.card:hover .cover::after { opacity: 1; }
+.cover img, .cover-fallback { transition: transform .45s cubic-bezier(.22, 1, .36, 1), opacity .45s ease; }
+.card:hover .cover img,
+.card:hover .cover-fallback { transform: scale(1.055); }
+.cover-tip {
+  position: absolute; left: 10px; right: 10px; bottom: 9px; z-index: 2;
+  color: #e8eaf2; font-size: 11.5px; line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity .22s ease .05s, transform .25s cubic-bezier(.22, 1, .36, 1) .05s;
+  pointer-events: none;
+}
+.cover-tip b { color: color-mix(in srgb, var(--accent) 55%, #fff); font-weight: 700; }
+.card:hover .cover-tip { opacity: 1; transform: none; }
+.card:hover .info h3 { color: var(--accent); transition: color .18s ease; }
+
+/* -- 4. 评分圆环（AniList 风格）-- */
+.score-ring {
+  position: absolute; right: 8px; top: 8px;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: conic-gradient(#facc15 calc(var(--pct) * 1%), rgba(8, 10, 16, .6) 0);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+}
+.score-ring i {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(9, 11, 17, .88);
+  display: flex; align-items: center; justify-content: center;
+  font-style: normal; font-size: 10.5px; font-weight: 800; color: #fde047;
+  letter-spacing: -.02em;
+}
+
+/* -- 5. 海报加载：渐显 -- */
+.cover img { opacity: 0; }
+.cover img.loaded { opacity: 1; }
+.cover-fallback {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 60%, #1a1d27), color-mix(in srgb, var(--accent) 26%, #33384a));
+  animation: fallback-breathe 3.2s ease-in-out infinite;
+}
+@keyframes fallback-breathe {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.13); }
+}
+
+/* -- 6. 进度条渐变 + 平滑增长 -- */
+.progress-line i {
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #a5b4fc));
+  transition: width .5s cubic-bezier(.22, 1, .36, 1);
+}
+
+/* -- 7. 主按钮：渐变 + 流光扫过 -- */
+.btn-primary {
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 88%, #fff 6%), var(--accent));
+}
+.btn-primary::after {
+  content: "";
+  position: absolute; top: 0; left: -80%; width: 50%; height: 100%;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, .28), transparent);
+  transform: skewX(-18deg); transition: left .45s ease;
+}
+.btn-primary:hover::after { left: 130%; }
+.btn:active { transform: translateY(0) scale(.965); }
+
+/* -- 8. 顶栏滚动状态 -- */
+.topbar { transition: box-shadow .25s ease, background .25s ease; }
+.topbar.scrolled { box-shadow: 0 6px 24px rgba(8, 10, 18, .18); }
+
+/* -- 9. 分组标题：计数胶囊 + 悬停反馈 -- */
+.group-sec h2 .cnt {
+  padding: 2px 9px; border-radius: 99px;
+  background: color-mix(in srgb, var(--accent) 11%, var(--bg-soft));
+  font-size: 11.5px; font-weight: 700;
+}
+.group-sec h2 { transition: opacity .15s ease; }
+.group-sec h2:hover { opacity: .75; }
+
+/* -- 10. 弹窗弹入（带回弹）-- */
+.overlay { animation: overlay-in .22s ease; }
+@keyframes overlay-in { from { opacity: 0; } }
+.dialog { animation: dialog-in .32s cubic-bezier(.22, 1.32, .36, 1); }
+@keyframes dialog-in {
+  from { transform: scale(.93) translateY(14px); opacity: 0; }
+}
+
+/* -- 11. Toast 弹簧上浮 -- */
+.toast { animation: rise .38s cubic-bezier(.22, 1.4, .36, 1); border-left: 3px solid var(--accent); }
+
+/* -- 12. 芯片按压反馈 -- */
+.chip { transition: all .15s ease, transform .1s ease; }
+.chip:active { transform: scale(.94); }
+
+/* -- 13. 空状态呼吸 -- */
+.empty .big { display: inline-block; animation: bob 2.6s ease-in-out infinite; }
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* -- 14. 滚动条 -- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted) 38%, transparent);
+  border-radius: 99px; border: 2.5px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--muted) 60%, transparent); }
+
+/* -- 15. 键盘焦点环 -- */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+/* -- 16. 弱动效偏好 -- */
+@media (prefers-reduced-motion: reduce) {
+  body::before, body::after, .empty .big, .cover-fallback { animation: none !important; }
+  .card { opacity: 1; transform: none; }
+  * { transition-duration: .01ms !important; }
+}
+
+/* -- 17. 搜索结果条目渐显 -- */
+.result-item { opacity: 0; transform: translateY(10px); animation: result-in .4s cubic-bezier(.22, 1, .36, 1) forwards; }
+@keyframes result-in { to { opacity: 1; transform: none; } }
+.result-item:nth-child(2) { animation-delay: 40ms; }
+.result-item:nth-child(3) { animation-delay: 80ms; }
+.result-item:nth-child(4) { animation-delay: 120ms; }
+.result-item:nth-child(5) { animation-delay: 160ms; }
+.result-item:nth-child(n+6) { animation-delay: 200ms; }
+.result-item img { opacity: 0; transition: opacity .4s ease; }
+.result-item img.loaded { opacity: 1; }
+.poster-preview img { opacity: 0; transition: opacity .4s ease; }
+.poster-preview img.loaded { opacity: 1; }
