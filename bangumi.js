@@ -88,7 +88,7 @@ async function searchKitsu(keyword, kind) {
       }).filter(x => x.poster);
     }
   } catch (e) { /* 忽略 */ }
-  return null;
+  return [];
 }
 
 /* ---------- IMDb 建议接口（真人影视） ---------- */
@@ -203,6 +203,18 @@ async function searchViaIndex(keyword, type) {
     eps: (h.mid && eps[h.mid]) || null,
     src: 'index'
   }));
+  // AniList 不可用时，用索引里的日文名去 Kitsu 补封面
+  if (!results.some(r => r.poster)) {
+    for (let i = 0; i < Math.min(3, hits.length); i++) {
+      if (!hits[i].jp) continue;
+      const k = (await searchKitsu(hits[i].jp, 'anime')) || [];
+      const withPic = k.find(x => x.poster);
+      if (withPic && results[i]) {
+        results[i].poster = withPic.poster;
+        results[i].src = 'kitsu';
+      }
+    }
+  }
   // 至少有一个带封面才算成功，否则回落到网络搜索
   return results.some(r => r.poster) ? results : null;
 }

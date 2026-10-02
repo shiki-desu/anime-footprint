@@ -6,6 +6,40 @@
 const BGD_INDEX_URL = 'https://unpkg.com/bangumi-data@0.3/dist/data.json';
 const BGD_TTL = 7 * 24 * 3600 * 1000;
 let bgdIndexPromise = null;
+let bgdIndexFailUntil = 0;   // 加载失败后的冷却期，避免每次搜索都重新下载
+
+async function bgdIndex() {
+  if (Date.now() < bgdIndexFailUntil) throw new Error('索引刚才加载失败');
+  if (!bgdIndexPromise) {
+    bgdIndexPromise = (async () => {
+      const cached = await bgdCacheGet('bgdIndex');
+      if (cached && Date.now() - cached.t < BGD_TTL && Array.isArray(cached.data) && cached.data.length) {
+        return cached.data;
+      }
+      let lastErr = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const r = await fetchT(BGD_INDEX_URL + (attempt ? '?retry=' + attempt : ''), {}, 90000);
+          if (!r.ok) throw new Error('http ' + r.status);
+          const data = await r.json();
+          const index = bgdBuild(data.items || []);
+          if (!index.length) throw new Error('索引为空');
+          bgdCacheSet('bgdIndex', { t: Date.now(), data: index });
+          return index;
+        } catch (e) {
+          lastErr = e;
+          await new Promise(res => setTimeout(res, 1500));
+        }
+      }
+      throw (lastErr || new Error('索引加载失败'));
+    })();
+    bgdIndexPromise.catch(() => {
+      bgdIndexPromise = null;
+      bgdIndexFailUntil = Date.now() + 2 * 60 * 1000;
+    });
+  }
+  return bgdIndexPromise;
+}
 
 /* ---------- IndexedDB 简易缓存 ---------- */
 function bgdIdb() {
@@ -66,25 +100,6 @@ function bgdBuild(items) {
   return list;
 }
 
-async function bgdIndex() {
-  if (!bgdIndexPromise) {
-    bgdIndexPromise = (async () => {
-      const cached = await bgdCacheGet('bgdIndex');
-      if (cached && Date.now() - cached.t < BGD_TTL && Array.isArray(cached.data) && cached.data.length) {
-        return cached.data;
-      }
-      const r = await fetchT(BGD_INDEX_URL, {}, 60000);
-      if (!r.ok) throw new Error('index http ' + r.status);
-      const data = await r.json();
-      const index = bgdBuild(data.items || []);
-      if (index.length) bgdCacheSet('bgdIndex', { t: Date.now(), data: index });
-      return index;
-    })();
-    bgdIndexPromise.catch(() => { bgdIndexPromise = null; });
-  }
-  return bgdIndexPromise;
-}
-
 /* ---------- 本地中文搜索 ---------- */
 /* 返回 [{cn, jp, bid, mid, type, year}]，按相关度排序 */
 function bgdBigrams(s) {
@@ -143,27 +158,35 @@ async function bgdSearch(keyword, limit) {
 }
 
 /* ---------- AniList 封面（按 MAL id 批量） ---------- */
-/* 返回 { covers: {malId: url}, eps: {malId: n} } */
+/* 返回 { covers: {malId: url}, eps: {malId: n} }；失败自动重试一次，429 时退避 */
 async function anilistCoversByMal(ids) {
   const clean = [...new Set(ids.filter(x => typeof x === 'number'))].slice(0, 50);
   if (!clean.length) return { covers: {}, eps: {} };
-  const query = 'query($ids:[Int]){Page(perPage:50){media(idMal_in:$ids,type:ANIME){idMal episodes coverImage{large}}}}';
-  try {
-    const r = await fetchT('https://graphql.anilist.co', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, variables: { ids: clean } })
-    }, 15000);
-    if (!r.ok) return { covers: {}, eps: {} };
-    const d = await r.json();
-    const covers = {}, eps = {};
-    for (const m of (d.data && d.data.Page && d.data.Page.media) || []) {
-      if (!m.idMal) continue;
-      if (m.coverImage && m.coverImage.large) covers[m.idMal] = m.coverImage.large;
-      if (m.episodes) eps[m.idMal] = m.episodes;
-    }
-    return { covers, eps };
-  } catch (e) {
-    return { covers: {}, eps: {} };
+  const query = 'query($ids:[Int]){Page(perPage:50){media(idMal_in:$ids,type:ANIME){idMal episodes coverImage{large}}}}}';
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await fetchT('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { ids: clean } })
+      }, 15000);
+      if (r.status === 429) {
+        const wait = Math.min(20, +(r.headers.get('retry-after') || 5));
+        if (attempt === 0) { await new Promise(res => setTimeout(res, wait * 1000 + 500)); continue; }
+        return { covers: {}, eps: {} };
+      }
+      if (r.ok) {
+        const d = await r.json();
+        const covers = {}, eps = {};
+        for (const m of (d.data && d.data.Page && d.data.Page.media) || []) {
+          if (!m.idMal) continue;
+          if (m.coverImage && m.coverImage.large) covers[m.idMal] = m.coverImage.large;
+          if (m.episodes) eps[m.idMal] = m.episodes;
+        }
+        return { covers, eps };
+      }
+    } catch (e) { /* 网络抖动，重试一次 */ }
+    if (attempt === 0) await new Promise(res => setTimeout(res, 1200));
   }
+  return { covers: {}, eps: {} };
 }

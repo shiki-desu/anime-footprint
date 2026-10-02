@@ -825,34 +825,45 @@ async function startFill() {
   // —— 快路径：本地中文索引 + AniList 批量封面（动漫/剧场版）——
   if (aniEntries.length) {
     $('#fillText').textContent = '正在加载中文索引（首次约 8MB，之后有缓存）…';
+    let indexOk = true;
     try {
-      const pairs = [];
-      for (const e of aniEntries) {
-        if (fillAbort) break;
-        const hits = await bgdSearch(bgCleanKeyword(e.title), 1);
-        const hit = hits[0];
-        // 模糊匹配容易误伤，只在明确等级或相似度足够高时才采用
-        if (hit && hit.mid && (hit.score >= 1 || hit.dice >= 0.62)) pairs.push([e, hit]);
-      }
-      for (let i = 0; i < pairs.length; i += 40) {
-        if (fillAbort) break;
-        const batch = pairs.slice(i, i + 40);
-        const { covers, eps } = await anilistCoversByMal(batch.map(([, h]) => h.mid));
-        for (const [e, hit] of batch) {
-          if (covers[hit.mid]) {
-            e.poster = covers[hit.mid];
-            e.bangumiId = hit.bid;
-            if (!e.totalEp && eps[hit.mid]) e.totalEp = eps[hit.mid];
-            e.updatedAt = Date.now();
-            got++;
-          }
+      await bgdIndex();
+    } catch (e) {
+      indexOk = false;
+    }
+    if (indexOk) {
+      try {
+        const pairs = [];
+        for (const e of aniEntries) {
+          if (fillAbort) break;
+          const hits = await bgdSearch(bgCleanKeyword(e.title), 1);
+          const hit = hits[0];
+          // 模糊匹配容易误伤，只在明确等级或相似度足够高时才采用
+          if (hit && hit.mid && (hit.score >= 1 || hit.dice >= 0.62)) pairs.push([e, hit]);
         }
-        $('#fillBar').style.width = (Math.min(95, (i + batch.length) / missing.length * 100)).toFixed(1) + '%';
-        $('#fillText').textContent = `索引匹配 ${got} 张封面…`;
-        save();
-      }
-      render();
-    } catch (e) { /* 索引不可用，落到慢路径 */ }
+        for (let i = 0; i < pairs.length; i += 40) {
+          if (fillAbort) break;
+          const batch = pairs.slice(i, i + 40);
+          const { covers, eps } = await anilistCoversByMal(batch.map(([, h]) => h.mid));
+          for (const [e, hit] of batch) {
+            if (covers[hit.mid]) {
+              e.poster = covers[hit.mid];
+              e.bangumiId = hit.bid;
+              if (!e.totalEp && eps[hit.mid]) e.totalEp = eps[hit.mid];
+              e.updatedAt = Date.now();
+              got++;
+            }
+          }
+          $('#fillBar').style.width = (Math.min(95, (i + batch.length) / missing.length * 100)).toFixed(1) + '%';
+          $('#fillText').textContent = `索引匹配 ${got} 张封面…`;
+          save();
+        }
+      } catch (e) { /* 索引或封面服务异常，落到慢路径 */ }
+      if (!got) $('#fillText').textContent = '快速匹配暂时不可用（索引或封面服务失败），改用备用渠道…';
+    } else {
+      $('#fillText').textContent = '中文索引加载失败，改用备用渠道…';
+    }
+    render();
   }
 
   // —— 慢路径：逐条网络搜索（小说/漫画/真人影视，或索引失败的）——
