@@ -1006,7 +1006,13 @@ $('#btnClear').onclick = async () => {
         }
       }
     }
-    if (renamed) { save(); render(); }
+    // 清除已知配错来源的封面（由补全的种子重补）
+    const wrong = window.WRONG_POSTER_FRAGMENTS || [];
+    let cleared = 0;
+    for (const e of state.entries) {
+      if (e.poster && wrong.some(w => e.poster.includes(w))) { e.poster = null; cleared++; }
+    }
+    if (renamed || cleared) { save(); render(); }
   } catch (e) { /* 静默 */ }
 })();
 

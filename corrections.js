@@ -238,5 +238,16 @@ window.REAL_POSTERS = {
  "末日三问 第5卷": {
   "poster": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx87285-XcV0VXkIEJvN.jpg",
   "name": "終末なにしてますか? もう一度だけ、会えますか?"
+ },
+ "败犬女主太多了": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx171457-nmMIk0gNiWsm.jpg",
+  "name": "Makeine: Too Many Losing Heroines!"
+ },
+ "蓦然回首": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx174788-9LsUnn0oEppv.jpg",
+  "name": "LOOK BACK"
  }
 };
+
+/* 已知配错来源的封面片段，加载时清除后由种子重补 */
+window.WRONG_POSTER_FRAGMENTS = ["anime/47439", "manga/69964"];
