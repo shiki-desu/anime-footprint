@@ -973,4 +973,29 @@ $('#btnClear').onclick = async () => {
 };
 
 /* ---------- 启动 ---------- */
+// 应用标题修正表：重命名条目与分组（幂等，每次加载静默执行）
+(async () => {
+  try {
+    if (!window.TITLE_CORRECTIONS || !state.entries.length) return;
+    let renamed = 0;
+    const lower = t => String(t || '').toLowerCase();
+    for (const e of state.entries) {
+      for (const key of Object.keys(window.TITLE_CORRECTIONS)) {
+        const val = window.TITLE_CORRECTIONS[key];
+        if (val == null) continue;
+        const k = lower(key);
+        if (lower(e.title).startsWith(k)) {
+          const nt = val + e.title.slice(key.length);
+          if (nt !== e.title) { e.title = nt; e.updatedAt = Date.now(); renamed++; }
+        }
+        if (e.group && lower(e.group).startsWith(k)) {
+          const ng = val + e.group.slice(key.length);
+          if (ng !== e.group) { e.group = ng; renamed++; }
+        }
+      }
+    }
+    if (renamed) { save(); render(); }
+  } catch (e) { /* 静默 */ }
+})();
+
 render();

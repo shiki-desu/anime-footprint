@@ -254,9 +254,23 @@ async function bgSubject(id) {
   return null;
 }
 
+// 标题修正表（corrections.js）：旧写法 → 网络标准译名
+function applyCorrection(title) {
+  const cor = window.TITLE_CORRECTIONS || {};
+  const lower = String(title || '').toLowerCase();
+  for (const key of Object.keys(cor)) {
+    if (cor[key] == null) continue;
+    const k = key.toLowerCase();
+    if (lower === k || lower.startsWith(k)) {
+      return cor[key] + String(title).slice(key.length);
+    }
+  }
+  return title;
+}
+
 // 搜索关键词清理：去掉季数/剧场版等修饰，提高命中率
 function bgCleanKeyword(title) {
-  const t = title
+  const t = applyCorrection(title)
     .replace(/第[一二三四五六七八九十0-9]+\s*[季部].*$/, '')
     .replace(/(剧场版|OVA|OAD|SP|总集篇|外传|后日谈|完结篇|始动篇|第一季|第二季|第三季|第四季|第五季)/gi, '')
     .replace(/(全|共)\d+集/g, '')

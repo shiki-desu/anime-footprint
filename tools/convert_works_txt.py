@@ -12,6 +12,8 @@
     python tools/convert_works_txt.py [源txt] [输出txt]
 不带参数时默认：桌面上的 作品.txt -> examples/作品_足迹格式.txt
 """
+import io as _io
+import json
 import os
 import re
 import sys
@@ -259,6 +261,31 @@ def status_str(e):
     return '在看'
 
 
+def load_corrections():
+    """读取仓库根目录的 corrections.js（JSON 部分）"""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'corrections.js')
+    try:
+        txt = _io.open(path, encoding='utf-8').read()
+        m = re.search(r'\{.*\}', txt, re.S)
+        return json.loads(m.group(0)) if m else {}
+    except Exception:
+        return {}
+
+CORRECTIONS = load_corrections()
+
+
+def apply_corrections(title):
+    lower = title.lower()
+    for key in sorted(CORRECTIONS, key=len, reverse=True):
+        val = CORRECTIONS[key]
+        if val is None:
+            continue
+        k = key.lower()
+        if lower == k or lower.startswith(k):
+            return val + title[len(key):]
+    return title
+
+
 def build_output(entries):
     lines = []
     prev_group = None
@@ -298,6 +325,8 @@ def main():
     text = read_text(src)
     parsed = [e for e in (parse_line(l) for l in text.splitlines()) if e]
     entries = assign_groups(parsed)
+    for e in entries:
+        e['title'] = apply_corrections(e['title'])
     out = build_output(entries)
 
     os.makedirs(os.path.dirname(os.path.abspath(dst)), exist_ok=True)
