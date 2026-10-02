@@ -2,14 +2,16 @@
 'use strict';
 
 const LS_KEY = 'animeFootprint:v1';
-const DEFAULT_SETTINGS = { mode: 'auto', accent: '#6366f1', poster: 'm', view: 'grid', sort: 'added', bgmApi: '' };
-const ACCENT_PRESETS = ['#6366f1', '#0ea5e9', '#14b8a6', '#8b5cf6', '#ec4899', '#f97316'];
+const DEFAULT_SETTINGS = { mode: 'auto', accent: '#b4532a', poster: 'm', view: 'series', sort: 'added', bgmApi: '' };
+const ACCENT_PRESETS = ['#b4532a', '#3a6b7d', '#5d7a4e', '#8c5a2b', '#5b5e9e', '#a83a5e'];
+const TYPE_ICONS = { anime: 'tv', movie: 'film', real: 'users', novel: 'book', manga: 'pen' };
 
 let state = loadState();
 const filters = { status: 'all', type: 'all', q: '' };
 let editingId = null;   // 当前编辑条目 id；null = 新建
 let importedPending = null;
 let fillAbort = false;
+let currentSeriesName = null;   // 系列目录弹窗当前展示的系列
 
 /* ---------- 基础工具 ---------- */
 const $ = s => document.querySelector(s);
@@ -58,7 +60,11 @@ function loadState() {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) {
       const d = JSON.parse(raw);
-      return { entries: Array.isArray(d.entries) ? d.entries : [], settings: Object.assign({}, DEFAULT_SETTINGS, d.settings || {}) };
+      const settings = Object.assign({}, DEFAULT_SETTINGS, d.settings || {});
+      // 旧版默认色与旧视图迁移
+      if (settings.accent === '#6366f1') settings.accent = DEFAULT_SETTINGS.accent;
+      if (settings.view === 'grid' || settings.view === 'group') settings.view = 'series';
+      return { entries: Array.isArray(d.entries) ? d.entries : [], settings };
     }
   } catch (e) { /* 损坏则重置 */ }
   return { entries: [], settings: Object.assign({}, DEFAULT_SETTINGS) };
@@ -84,27 +90,118 @@ function applySettings() {
   $$('#setMode button').forEach(b => b.classList.toggle('on', b.dataset.v === s.mode));
   $$('#setPoster button').forEach(b => b.classList.toggle('on', b.dataset.v === s.poster));
   $$('#setSwatches .swatch').forEach(b => b.classList.toggle('on', b.dataset.c === s.accent));
-  $('#btnView').classList.toggle('btn-primary', s.view === 'group');
-  $('#btnView').textContent = s.view === 'group' ? '▦ 网格' : '🗂 分组';
+  $('#btnView').classList.toggle('btn-primary', false);
+  const use = $('#btnView use');
+  if (use) use.setAttribute('href', s.view === 'series' ? '#i-list' : '#i-grid');
+  $('#btnViewText').textContent = s.view === 'series' ? '条目' : '作品';
   $('#sortSel').value = s.sort;
 }
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applySettings);
 
 /* ---------- 渲染 ---------- */
-function visibleEntries() {
-  let list = [...state.entries];
-  if (filters.status !== 'all') list = list.filter(e => e.status === filters.status);
-  if (filters.type !== 'all') list = list.filter(e => (e.type || 'anime') === filters.type);
+function entryMatches(e) {
+  if (filters.status !== 'all' && e.status !== filters.status) return false;
+  if (filters.type !== 'all' && (e.type || 'anime') !== filters.type) return false;
   if (filters.q) {
     const q = filters.q.toLowerCase();
-    list = list.filter(e => [e.title, e.group, e.comment].some(x => x && String(x).toLowerCase().includes(q)));
+    if (![e.title, e.group, e.comment].some(x => x && String(x).toLowerCase().includes(q))) return false;
   }
+  return true;
+}
+
+function sortCmp(a, b) {
   const s = state.settings.sort;
-  if (s === 'score') list.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
-  else if (s === 'title') list.sort((a, b) => a.title.localeCompare(b.title, 'zh-Hans-CN'));
-  else if (s === 'updated') list.sort((a, b) => b.updatedAt - a.updatedAt);
-  else list.sort((a, b) => a.addedAt - b.addedAt);
+  if (s === 'score') return (b.score ?? -1) - (a.score ?? -1);
+  if (s === 'title') return String(a.sortTitle || a.title).localeCompare(String(b.sortTitle || b.title), 'zh-Hans-CN');
+  if (s === 'updated') return b.updatedAt - a.updatedAt;
+  return a.addedAt - b.addedAt;
+}
+
+function visibleEntries() {
+  const list = state.entries.filter(entryMatches);
+  list.sort(sortCmp);
   return list;
+}
+
+/* ----- 系列归拢：同系列作品聚合成一张“作品卡”，点进去看内部条目 ----- */
+
+// 去掉季数/剧场版/卷数等修饰，得到系列名
+function baseTitleOf(title) {
+  const base = String(title || '')
+    .replace(/\s*第[一二三四五六七八九十0-9]+\s*[季部].*$/, '')
+    .replace(/\s*(最终季|完结篇|始动篇|总集篇|剧场版|OVA\s?\d*|OAD|SP|Part\s?\d+).*$/i, '')
+    .replace(/\s*[\[［【（(][^\]】）)]*[\]】）)]\s*/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/[\s+＋\-—·、,，]+$/, '')
+    .trim();
+  return base || String(title || '');
+}
+
+// 系列内部条目显示名：去掉系列名前缀
+function innerTitle(e, name) {
+  let t = String(e.title || '');
+  if (name && t.startsWith(name)) t = t.slice(name.length);
+  t = t.replace(/^[\s+＋\-—·、,，：:]+/, '').trim();
+  return t || (t === '' && name === e.title ? '本篇' : e.title);
+}
+
+function computeSeries() {
+  const groups = new Map();     // 导入时的分组
+  const derived = new Map();    // 从标题推断的系列
+  const standalone = [];
+
+  for (const e of state.entries) {
+    if (e.group) {
+      const k = 'g:' + e.group;
+      if (!groups.has(k)) groups.set(k, { key: k, name: e.group, items: [] });
+      groups.get(k).items.push(e);
+      continue;
+    }
+    const base = baseTitleOf(e.title);
+    if (base && base !== e.title) {
+      // 标题推断出的系列名若与已有分组同名，归入该分组
+      const gk = 'g:' + base;
+      if (groups.has(gk)) { groups.get(gk).items.push(e); continue; }
+      if (!derived.has('t:' + base)) derived.set('t:' + base, { key: 't:' + base, name: base, items: [] });
+      derived.get('t:' + base).items.push(e);
+      continue;
+    }
+    standalone.push(e);
+  }
+
+  const enrich = (s) => {
+    s.items.sort((a, b) => a.addedAt - b.addedAt);
+    const withPoster = s.items.find(e => e.poster);
+    s.poster = withPoster ? withPoster.poster : null;
+    s.addedAt = Math.min(...s.items.map(e => e.addedAt));
+    s.updatedAt = Math.max(...s.items.map(e => e.updatedAt));
+    s.maxScore = Math.max(...s.items.map(e => e.score != null ? +e.score : -1));
+    s.anyWatching = s.items.some(e => e.status === 'watching');
+    s.allFinished = s.items.every(e => e.status === 'finished');
+    s.anyPlanned = s.items.some(e => e.status === 'planned');
+    s.aggStatus = s.anyWatching ? 'watching' : (s.allFinished ? 'finished' : (s.anyPlanned ? 'planned' : 'watching'));
+    const tc = {};
+    s.items.forEach(e => { const t = e.type || 'anime'; tc[t] = (tc[t] || 0) + 1; });
+    s.type = Object.entries(tc).sort((a, b) => b[1] - a[1])[0][0];
+    s.sortTitle = s.name;
+    return s;
+  };
+
+  const series = [...groups.values(), ...derived.values()].map(enrich);
+  for (const s of series) {
+    // 已有分组名与标题推断系列同名时合并
+    s.key = s.key;
+  }
+  // 标题推断系列若与导入分组重名（理论上已并入），保险起见按名字合并
+  const byName = new Map();
+  for (const s of series) {
+    if (byName.has(s.name)) {
+      byName.get(s.name).items.push(...s.items);
+    } else byName.set(s.name, s);
+  }
+  const merged = [...byName.values()].map(enrich);
+  for (const e of standalone) { e.sortTitle = e.title; }
+  return { series: merged, standalone };
 }
 
 /* -- 卡片入场交错动画：进入视口后上浮显现 -- */
@@ -141,9 +238,14 @@ function render() {
   observeCards();
 }
 
-function chip(label, count, active, onclick) {
+function chip(label, count, active, onclick, icon) {
   const b = el('button', 'chip' + (active ? ' active' : ''));
-  b.append(label);
+  if (icon) {
+    b.innerHTML = `<svg class="ic"><use href="#i-${icon}"/></svg>`;
+    b.appendChild(document.createTextNode(label));
+  } else {
+    b.append(label);
+  }
   if (count != null) {
     const c = el('b', null, String(count));
     b.appendChild(c);
@@ -168,7 +270,7 @@ function renderChips() {
   for (const t of types) {
     const n = es.filter(e => (e.type || 'anime') === t).length;
     if (n === 0 && filters.type !== t) continue;
-    tc.append(chip(TYPE_LABELS[t], n, filters.type === t, () => { filters.type = t; render(); }));
+    tc.append(chip(TYPE_LABELS[t], n, filters.type === t, () => { filters.type = t; render(); }, TYPE_ICONS[t]));
   }
 }
 
@@ -243,15 +345,16 @@ function bumpEp(e) {
 function renderMain() {
   const main = $('#main');
   main.textContent = '';
-  const list = visibleEntries();
 
   if (!state.entries.length) {
     const empty = el('div', 'empty');
-    empty.appendChild(el('div', 'big', '🐾'));
+    const big = el('div', 'big');
+    big.innerHTML = '<svg aria-hidden="true"><use href="#i-paw"/></svg>';
+    empty.appendChild(big);
     empty.appendChild(el('h2', null, '开始记录你的动漫足迹'));
     empty.appendChild(el('p', null, '添加看过的作品，打分、记录进度、自动匹配海报。'));
     const line = el('div', 'btn-line');
-    const b1 = el('button', 'btn btn-primary', '＋ 添加作品');
+    const b1 = el('button', 'btn btn-primary', '添加作品');
     b1.onclick = openAdd;
     const b2 = el('button', 'btn btn-ghost', '导入作品记录');
     b2.onclick = openData;
@@ -262,48 +365,131 @@ function renderMain() {
     return;
   }
 
-  if (!list.length) {
-    main.appendChild(el('div', 'empty', '没有符合条件的作品'));
-    $('#stats').textContent = '';
-    return;
+  const grid = el('div', 'grid');
+
+  if (state.settings.view === 'series') {
+    // 作品视图：同系列聚合成一张卡，点进去看内部条目
+    const { series, standalone } = computeSeries();
+    const unified = [];
+    for (const s0 of series) {
+      const items = s0.items.filter(entryMatches);
+      if (!items.length) continue;
+      const s = Object.assign({}, s0, { items });
+      s.anyWatching = items.some(e => e.status === 'watching');
+      s.allFinished = items.every(e => e.status === 'finished');
+      s.anyPlanned = items.some(e => e.status === 'planned');
+      s.aggStatus = s.anyWatching ? 'watching' : (s.allFinished ? 'finished' : (s.anyPlanned ? 'planned' : 'watching'));
+      s.maxScore = Math.max(...items.map(e => e.score != null ? +e.score : -1));
+      unified.push({ kind: 'series', obj: s });
+    }
+    for (const e of standalone) {
+      if (entryMatches(e)) unified.push({ kind: 'entry', obj: e });
+    }
+    if (!unified.length) {
+      main.appendChild(el('div', 'empty', '没有符合条件的作品'));
+      $('#stats').textContent = '';
+      return;
+    }
+    unified.sort((a, b) => sortCmp(a.obj, b.obj));
+    for (const c of unified) grid.appendChild(c.kind === 'series' ? seriesCardEl(c.obj) : cardEl(c.obj));
+  } else {
+    // 条目视图：所有记录平铺
+    const list = visibleEntries();
+    if (!list.length) {
+      main.appendChild(el('div', 'empty', '没有符合条件的作品'));
+      $('#stats').textContent = '';
+      return;
+    }
+    list.forEach(e => grid.appendChild(cardEl(e)));
   }
 
-  if (state.settings.view === 'group') {
-    const groups = new Map();
-    for (const e of list) {
-      const g = e.group || '未分组';
-      if (!groups.has(g)) groups.set(g, []);
-      groups.get(g).push(e);
-    }
-    const names = [...groups.keys()].sort((a, b) => {
-      if (a === '未分组') return 1;
-      if (b === '未分组') return -1;
-      return a.localeCompare(b, 'zh-Hans-CN');
-    });
-    for (const name of names) {
-      const sec = el('section', 'group-sec');
-      const h = el('h2');
-      h.appendChild(el('span', 'arrow', '▼'));
-      h.appendChild(document.createTextNode(name));
-      h.appendChild(el('span', 'cnt', `（${groups.get(name).length}）`));
-      h.onclick = () => sec.classList.toggle('collapsed');
-      sec.appendChild(h);
-      const grid = el('div', 'grid');
-      groups.get(name).forEach(e => grid.appendChild(cardEl(e)));
-      sec.appendChild(grid);
-      main.appendChild(sec);
-    }
-  } else {
-    const grid = el('div', 'grid');
-    list.forEach(e => grid.appendChild(cardEl(e)));
-    main.appendChild(grid);
-  }
+  main.appendChild(grid);
 
   const done = state.entries.filter(e => e.status === 'finished').length;
   const watching = state.entries.filter(e => e.status === 'watching').length;
   const scored = state.entries.filter(e => e.score != null);
   const avg = scored.length ? (scored.reduce((s, e) => s + +e.score, 0) / scored.length).toFixed(1) : '—';
-  $('#stats').textContent = `共 ${state.entries.length} 部 · 看完 ${done} · 在看 ${watching} · 平均评分 ${avg}`;
+  $('#stats').textContent = `共 ${state.entries.length} 条 · 看完 ${done} · 在看 ${watching} · 平均评分 ${avg}`;
+}
+
+/* 作品卡：聚合状态 + 悬停预览内部条目 */
+function seriesCardEl(s) {
+  const card = el('article', 'card');
+  const cover = el('div', 'cover');
+  if (s.poster) {
+    const img = smartImg(s.poster, s.name, () => { img.remove(); if (!cover.querySelector('img')) cover.appendChild(coverFallback({ title: s.name })); });
+    cover.appendChild(img);
+  } else {
+    cover.appendChild(coverFallback({ title: s.name }));
+  }
+  cover.appendChild(el('span', 'badge status-' + s.aggStatus, STATUS_LABELS[s.aggStatus]));
+  if (s.maxScore >= 0) {
+    const v = s.maxScore;
+    const ring = el('div', 'score-ring');
+    ring.style.setProperty('--pct', Math.round(Math.min(100, Math.max(0, v / 10 * 100))));
+    ring.appendChild(el('i', null, Number.isInteger(v) ? String(v) : v.toFixed(1)));
+    cover.appendChild(ring);
+  }
+  const names = s.items.map(e => innerTitle(e, s.name));
+  if (names.length) {
+    const tip = el('div', 'cover-tip');
+    tip.textContent = names.slice(0, 3).join(' · ') + (names.length > 3 ? ` 等${names.length}条` : '');
+    cover.appendChild(tip);
+  }
+  const info = el('div', 'info');
+  info.appendChild(el('h3', null, s.name));
+  const bits = [`${s.items.length} 条`, TYPE_LABELS[s.type] || ''];
+  if (s.anyWatching) bits.push('在看 ' + s.items.filter(e => e.status === 'watching').length);
+  info.appendChild(el('p', 'meta', bits.filter(Boolean).join(' · ')));
+  card.append(cover, info);
+  card.onclick = () => openSeries(s);
+  return card;
+}
+
+/* 系列目录弹窗 */
+function fmtScore(v) { return Number.isInteger(+v) ? String(+v) : (+v).toFixed(1); }
+
+function openSeries(s) {
+  currentSeriesName = s.name;
+  $('#srTitle').textContent = s.name;
+  const poster = $('#srPoster');
+  poster.textContent = '';
+  if (s.poster) poster.appendChild(smartImg(s.poster, s.name));
+  else poster.textContent = s.name.charAt(0);
+  const done = s.items.filter(e => e.status === 'finished').length;
+  const watching = s.items.filter(e => e.status === 'watching').length;
+  $('#srMeta').textContent = `${s.items.length} 条记录`;
+  $('#srSummary').textContent = `看完 ${done} · 在看 ${watching} · 想看 ${s.items.length - done - watching}`
+    + (s.maxScore >= 0 ? ` · 最高评分 ${fmtScore(s.maxScore)}` : '');
+  const list = $('#srList');
+  list.textContent = '';
+  for (const e of s.items) {
+    const row = el('div', 'sr-row');
+    const th = el('div', 'sr-thumb');
+    if (e.poster) th.appendChild(smartImg(e.poster, e.title));
+    else th.textContent = (innerTitle(e, s.name) || e.title).charAt(0);
+    const info = el('div', 'sr-info');
+    info.appendChild(el('h4', null, innerTitle(e, s.name)));
+    const bits = [STATUS_LABELS[e.status] + (e.status === 'watching' && e.currentEp ? ` 第${e.currentEp}集` : '')];
+    if (e.totalEp) bits.push(`共${e.totalEp}集`);
+    if (e.type && e.type !== 'anime') bits.push(TYPE_LABELS[e.type]);
+    if (e.comment) bits.push(e.comment);
+    info.appendChild(el('p', null, bits.join(' · ')));
+    const right = el('div', 'sr-right');
+    if (e.score != null) right.appendChild(el('span', 'sr-score', fmtScore(e.score)));
+    right.appendChild(el('span', 'mini-badge ' + e.status, STATUS_LABELS[e.status]));
+    row.append(th, info, right);
+    row.onclick = () => openEdit(e);
+    list.appendChild(row);
+  }
+  openModal('modalSeries');
+}
+
+function refreshSeriesModal() {
+  if ($('#modalSeries').classList.contains('hidden') || !currentSeriesName) return;
+  const s = computeSeries().series.find(x => x.name === currentSeriesName);
+  if (s) openSeries(s);
+  else { closeModal('modalSeries'); currentSeriesName = null; }
 }
 
 /* ---------- 弹窗通用 ---------- */
@@ -446,6 +632,7 @@ $('#edSave').onclick = () => {
     toast('已添加《' + title + '》');
   }
   save(); render();
+  refreshSeriesModal();
   closeModal('modalEdit');
 };
 
@@ -456,6 +643,7 @@ $('#edDelete').onclick = async () => {
   if (!ok) return;
   state.entries = state.entries.filter(x => x.id !== editingId);
   save(); render();
+  refreshSeriesModal();
   closeModal('modalEdit');
   toast('已删除');
 };
@@ -760,7 +948,7 @@ $('#searchBox').addEventListener('input', () => {
 });
 $('#sortSel').addEventListener('change', () => { state.settings.sort = $('#sortSel').value; save(); renderMain(); });
 $('#btnView').onclick = () => {
-  state.settings.view = state.settings.view === 'grid' ? 'group' : 'grid';
+  state.settings.view = state.settings.view === 'series' ? 'flat' : 'series';
   save(); render();
 };
 

@@ -1,31 +1,32 @@
-/* ===== 动漫足迹 · 主题变量 ===== */
+/* ===== 动漫足迹 · 主题变量（纸墨编辑风） ===== */
 :root {
-  --accent: #6366f1;
+  --accent: #b4532a;
   --card-w: 172px;
-  --radius: 14px;
-  --bg: #f4f5fa;
-  --bg-soft: #eceef6;
-  --card: #ffffff;
-  --text: #1c1e27;
-  --muted: #7a7f92;
-  --border: #e3e5ef;
-  --shadow: 0 2px 10px rgba(30, 34, 60, .07);
-  --shadow-hover: 0 10px 26px rgba(30, 34, 60, .14);
-  --overlay: rgba(24, 26, 38, .45);
-  --ok: #16a34a;
-  --danger: #dc2626;
-  --gold: #eab308;
+  --radius: 10px;
+  --bg: #f5f1e8;
+  --bg-soft: #ebe5d7;
+  --card: #fdfaf3;
+  --text: #2b261d;
+  --muted: #8d8471;
+  --border: #e2dac9;
+  --shadow: 0 1px 2px rgba(74, 62, 40, .05), 0 2px 8px rgba(74, 62, 40, .05);
+  --shadow-hover: 0 12px 28px rgba(74, 62, 40, .14);
+  --overlay: rgba(43, 37, 27, .42);
+  --ok: #647a4a;
+  --danger: #ad3b2c;
+  --gold: #c08a2e;
+  --serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun, serif;
 }
 [data-theme="dark"] {
-  --bg: #101218;
-  --bg-soft: #171a22;
-  --card: #1a1d27;
-  --text: #e8eaf2;
-  --muted: #8f94a8;
-  --border: #2a2e3c;
-  --shadow: 0 2px 10px rgba(0, 0, 0, .35);
-  --shadow-hover: 0 10px 26px rgba(0, 0, 0, .5);
-  --overlay: rgba(5, 6, 12, .6);
+  --bg: #171410;
+  --bg-soft: #201c15;
+  --card: #1c1812;
+  --text: #ebe4d6;
+  --muted: #9c927d;
+  --border: #342e23;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 2px 8px rgba(0, 0, 0, .25);
+  --shadow-hover: 0 12px 28px rgba(0, 0, 0, .5);
+  --overlay: rgba(10, 8, 5, .62);
 }
 html[data-poster="s"] { --card-w: 144px; }
 html[data-poster="l"] { --card-w: 212px; }
@@ -540,3 +541,109 @@ body::after {
 .result-item img.loaded { opacity: 1; }
 .poster-preview img { opacity: 0; transition: opacity .4s ease; }
 .poster-preview img.loaded { opacity: 1; }
+
+/* ===== 纸墨编辑风：去 AI 味细节 ===== */
+
+/* 图标统一尺寸（SVG 线性图标，不再用 emoji） */
+.ic { width: 17px; height: 17px; flex: none; vertical-align: -3.5px; }
+.btn .ic, .menu-item .ic { margin-right: 2px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; }
+.menu-item { display: flex; align-items: center; gap: 9px; }
+
+/* 品牌字：宋体印记 */
+.brand {
+  font-family: var(--serif);
+  font-weight: 700; font-size: 20px; letter-spacing: 1px;
+  color: var(--text); white-space: nowrap;
+  -webkit-text-fill-color: currentText;
+}
+.brand, .brand * { background: none !important; -webkit-background-clip: initial !important; -webkit-text-fill-color: initial !important; }
+.brand-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; margin-right: 9px;
+  background: var(--accent); color: #fdf8ef;
+  font-size: 18px; border-radius: 7px;
+  transform: translateY(2px);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .18);
+}
+
+/* 标题用衬线：目录感 */
+.dialog-head h2, .group-sec h2, .empty h2, #srTitle {
+  font-family: var(--serif);
+  letter-spacing: .06em;
+}
+
+/* 卡片与边界：描边为主、阴影为辅 */
+.cover { box-shadow: none; border: 1px solid var(--border); }
+.card:hover .cover { box-shadow: var(--shadow-hover); border-color: color-mix(in srgb, var(--accent) 34%, var(--border)); }
+.dialog { border-radius: 14px; }
+.btn { border-radius: 9px; }
+
+/* 状态徽章改为「点 + 字」弱化底色 */
+.badge { backdrop-filter: none; }
+.badge.status-watching { background: rgba(20, 17, 12, .62); }
+.badge.status-finished { background: rgba(20, 17, 12, .62); }
+.badge.status-planned { background: rgba(20, 17, 12, .62); }
+.badge::before {
+  content: ""; display: inline-block; width: 6px; height: 6px;
+  border-radius: 50%; margin-right: 5px; vertical-align: 1px;
+}
+.badge.status-watching::before { background: var(--accent); }
+.badge.status-finished::before { background: #9db87b; }
+.badge.status-planned::before { background: #b9b0a0; }
+
+/* ===== 系列目录视图 ===== */
+.series-head { display: flex; gap: 16px; padding: 4px 20px 14px; align-items: flex-start; }
+.series-poster {
+  width: 86px; aspect-ratio: 2 / 3; flex: none;
+  border-radius: 8px; overflow: hidden;
+  background: var(--bg-soft); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 30px; font-family: var(--serif);
+}
+.series-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.series-meta { font-size: 15px; font-weight: 700; font-family: var(--serif); letter-spacing: .04em; padding-top: 4px; }
+.series-summary { color: var(--muted); font-size: 13px; margin-top: 6px; line-height: 1.7; }
+.series-list { border-top: 1px solid var(--border); max-height: 52vh; overflow-y: auto; }
+.sr-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 20px; cursor: pointer; border-bottom: 1px solid var(--border);
+  transition: background .13s ease;
+}
+.sr-row:last-child { border-bottom: none; }
+.sr-row:hover { background: var(--bg-soft); }
+.sr-thumb {
+  width: 40px; aspect-ratio: 2 / 3; flex: none; border-radius: 5px; overflow: hidden;
+  background: var(--bg-soft); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 15px; font-family: var(--serif);
+}
+.sr-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sr-info { flex: 1; min-width: 0; }
+.sr-info h4 { margin: 0; font-size: 13.5px; font-weight: 600; }
+.sr-info p { margin: 3px 0 0; font-size: 12px; color: var(--muted); }
+.sr-right { display: flex; align-items: center; gap: 9px; flex: none; }
+.sr-score { font-size: 13px; font-weight: 800; color: var(--gold); }
+.mini-badge {
+  font-size: 11px; padding: 3px 9px; border-radius: 99px;
+  border: 1px solid var(--border); color: var(--muted);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.mini-badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; }
+.mini-badge.watching { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.mini-badge.watching::before { background: var(--accent); }
+.mini-badge.finished::before { background: var(--ok); }
+.mini-badge.planned::before { background: #b9b0a0; }
+.sr-count {
+  font-size: 11px; color: var(--muted);
+  border: 1px solid var(--border); border-radius: 99px; padding: 1px 8px;
+}
+
+/* 空状态爪印用 SVG */
+.empty .big svg { width: 62px; height: 62px; color: var(--accent); opacity: .8; }
+
+/* 类型筛选芯片带小图标 */
+.chip .ic { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; }
+
+/* 品牌爪印图标尺寸 */
+.brand-mark svg { width: 17px; height: 17px; }

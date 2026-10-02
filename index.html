@@ -4,15 +4,38 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>动漫足迹 · 我的追番记录</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b4532a'/%3E%3Ctext x='32' y='44' font-size='34' font-family='serif' font-weight='700' fill='%23fdf8ef' text-anchor='middle'%3E迹%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 
+<!-- 统一线性图标（手绘感描边，禁用 emoji 图标） -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 8h10M18 8h2M4 16h4M12 16h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="16" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-in" viewBox="0 0 24 24"><path d="M12 4v10m0 0l-4-4m4 4l4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M12 14V4m0 0L8 8m4-4l4 4M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10" r="1.6" fill="currentColor"/><path d="M5 17l4.5-4.5 3.5 3.5 3-3 3.5 3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2m-7 0l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-tv" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 3l3 3 3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 4v16M15 4v16M4 9h16M4 15h16" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 19c.8-3 2.9-4.5 5.5-4.5s4.7 1.5 5.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16.5" cy="10" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 15.5c2.2 0 3.8 1.2 4.5 3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h6a2 2 0 012 2v14a2 2 0 00-2-2H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M19 4h-6a2 2 0 00-2 2v14a2 2 0 012-2h6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 013 3L8 19l-4 1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 6.5l3.5 3.5" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-paw" viewBox="0 0 24 24"><ellipse cx="8.2" cy="16.4" rx="3.4" ry="4.2" transform="rotate(-14 8.2 16.4)" fill="currentColor"/><ellipse cx="15.8" cy="16.4" rx="3.4" ry="4.2" transform="rotate(14 15.8 16.4)" fill="currentColor"/><circle cx="5" cy="9.6" r="1.9" fill="currentColor"/><circle cx="10" cy="7.4" r="1.9" fill="currentColor"/><circle cx="14.8" cy="7.4" r="1.9" fill="currentColor"/><circle cx="19.4" cy="9.8" r="1.9" fill="currentColor"/></symbol>
+</svg>
+
+<!-- 统一线性图标结束 -->
+
 <header class="topbar">
-  <div class="brand">🐾 动漫足迹</div>
+  <div class="brand"><span class="brand-mark"><svg aria-hidden="true"><use href="#i-paw"/></svg></span>动漫足迹</div>
   <div class="search-wrap">
-    <span class="search-icon">⌕</span>
+    <svg class="ic search-icon"><use href="#i-search"/></svg>
     <input id="searchBox" type="search" placeholder="搜索标题 / 分组 / 备注…" autocomplete="off">
   </div>
   <select id="sortSel" class="sort-sel" title="排序方式">
@@ -21,16 +44,16 @@
     <option value="score">按评分优先</option>
     <option value="title">按标题</option>
   </select>
-  <button id="btnView" class="btn btn-ghost" title="切换分组视图">🗂 分组</button>
-  <button id="btnAdd" class="btn btn-primary">＋ 添加</button>
+  <button id="btnView" class="btn btn-ghost" title="切换视图"><svg class="ic"><use href="#i-list"/></svg><span id="btnViewText">条目</span></button>
+  <button id="btnAdd" class="btn btn-primary"><svg class="ic"><use href="#i-plus"/></svg>添加</button>
   <div class="more-wrap">
     <button id="btnMore" class="btn btn-ghost" title="更多">⋯</button>
     <div id="moreMenu" class="menu hidden">
-      <button id="btnSettings" class="menu-item">🎨 外观设置</button>
-      <button id="btnData" class="menu-item">📥 导入 / 导出</button>
-      <button id="btnFill" class="menu-item">🖼 一键补全封面</button>
+      <button id="btnSettings" class="menu-item"><svg class="ic"><use href="#i-sliders"/></svg>外观设置</button>
+      <button id="btnData" class="menu-item"><svg class="ic"><use href="#i-in"/></svg>导入 / 导出</button>
+      <button id="btnFill" class="menu-item"><svg class="ic"><use href="#i-image"/></svg>一键补全封面</button>
       <hr>
-      <button id="btnClear" class="menu-item danger">🗑 清空全部数据</button>
+      <button id="btnClear" class="menu-item danger"><svg class="ic"><use href="#i-trash"/></svg>清空全部数据</button>
     </div>
   </div>
 </header>
@@ -48,7 +71,7 @@
   <div class="dialog">
     <div class="dialog-head">
       <h2>添加作品</h2>
-      <button class="icon-btn" data-close="modalAdd">✕</button>
+      <button class="icon-btn" data-close="modalAdd"><svg class="ic"><use href="#i-close"/></svg></button>
     </div>
     <div class="dialog-body">
       <p class="hint">输入名字，自动从网络匹配作品信息和海报（Bangumi）</p>
@@ -62,19 +85,37 @@
   </div>
 </div>
 
+<!-- 系列目录（点进作品看内部条目） -->
+<div class="overlay hidden" id="modalSeries">
+  <div class="dialog dialog-lg">
+    <div class="dialog-head">
+      <h2 id="srTitle">系列</h2>
+      <button class="icon-btn" data-close="modalSeries"><svg class="ic"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="series-head">
+      <div id="srPoster" class="series-poster"></div>
+      <div>
+        <div id="srMeta" class="series-meta"></div>
+        <div id="srSummary" class="series-summary"></div>
+      </div>
+    </div>
+    <div id="srList" class="series-list"></div>
+  </div>
+</div>
+
 <!-- 编辑 / 新建条目 -->
 <div class="overlay hidden" id="modalEdit">
   <div class="dialog dialog-lg">
     <div class="dialog-head">
       <h2 id="edHead">编辑作品</h2>
-      <button class="icon-btn" data-close="modalEdit">✕</button>
+      <button class="icon-btn" data-close="modalEdit"><svg class="ic"><use href="#i-close"/></svg></button>
     </div>
     <div class="dialog-body">
       <div class="edit-grid">
         <div class="poster-col">
           <div id="edPosterBox" class="poster-preview"></div>
           <input id="edPosterUrl" type="text" placeholder="封面图片链接（可留空）">
-          <button id="edSearchToggle" class="btn btn-ghost btn-block">🔍 网络搜索封面</button>
+          <button id="edSearchToggle" class="btn btn-ghost btn-block"><svg class="ic"><use href="#i-search"/></svg>网络搜索封面</button>
           <div id="edSearchArea" class="hidden">
             <div class="search-line">
               <input id="edSearchName" type="text" placeholder="按名字搜索…" autocomplete="off">
@@ -131,7 +172,7 @@
       </div>
     </div>
     <div class="dialog-foot">
-      <button id="edDelete" class="btn btn-danger hidden">删除</button>
+      <button id="edDelete" class="btn btn-danger hidden"><svg class="ic"><use href="#i-trash"/></svg>删除</button>
       <span class="spacer"></span>
       <button id="edCancel" class="btn btn-ghost" data-close="modalEdit">取消</button>
       <button id="edSave" class="btn btn-primary">保存</button>
@@ -144,11 +185,11 @@
   <div class="dialog">
     <div class="dialog-head">
       <h2>导入 / 导出</h2>
-      <button class="icon-btn" data-close="modalData">✕</button>
+      <button class="icon-btn" data-close="modalData"><svg class="ic"><use href="#i-close"/></svg></button>
     </div>
     <div class="dialog-body">
       <h3 class="sec-title">导出备份</h3>
-      <button id="btnExport" class="btn btn-ghost">⬇ 下载 JSON 备份</button>
+      <button id="btnExport" class="btn btn-ghost"><svg class="ic"><use href="#i-out"/></svg>下载 JSON 备份</button>
 
       <h3 class="sec-title">导入</h3>
       <p class="hint">支持 <b>足迹格式</b> 文本或本工具导出的 JSON。足迹格式：</p>
@@ -171,7 +212,7 @@
       <h3 class="sec-title">自动补全封面</h3>
       <p class="hint">为缺少封面的条目自动搜索并匹配海报。若匹配率低，多半是网络无法直连 Bangumi，请先在「外观设置」里配置镜像地址（方法见项目 README）。</p>
       <div class="btn-line">
-        <button id="btnFillPosters" class="btn btn-ghost">🖼 开始补全</button>
+        <button id="btnFillPosters" class="btn btn-ghost"><svg class="ic"><use href="#i-image"/></svg>开始补全</button>
         <button id="btnFillStop" class="btn btn-danger hidden">停止</button>
       </div>
       <div id="fillWrap" class="progress hidden"><div id="fillBar"></div></div>
@@ -185,7 +226,7 @@
   <div class="dialog dialog-sm">
     <div class="dialog-head">
       <h2>外观设置</h2>
-      <button class="icon-btn" data-close="modalSettings">✕</button>
+      <button class="icon-btn" data-close="modalSettings"><svg class="ic"><use href="#i-close"/></svg></button>
     </div>
     <div class="dialog-body">
       <div class="field"><span>外观模式</span>
