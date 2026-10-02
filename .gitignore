@@ -4,3 +4,4 @@ __pycache__/
 tools/missing_tmp.json
 anilist_tmp.json
 real_posters_tmp.json
+tools/audit_tmp.json
