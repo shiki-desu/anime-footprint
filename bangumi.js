@@ -92,6 +92,19 @@ async function searchKitsu(keyword, kind) {
 }
 
 /* ---------- IMDb 建议接口（真人影视） ---------- */
+/* 预置海报种子（corrections.js 的 REAL_POSTERS，IMDb 直连预解析，稳定可靠） */
+function realPosterSeed(title) {
+  const map = window.REAL_POSTERS || {};
+  const t = String(title || '').trim();
+  if (!t) return null;
+  const lower = t.toLowerCase();
+  for (const key of Object.keys(map)) {
+    const k = key.toLowerCase();
+    if (lower === k || lower.startsWith(k) || k.startsWith(lower)) return map[key];
+  }
+  return null;
+}
+
 /* v2.sg.media-imdb.com 无 CORS 头，经公共代理尽力而为；图床 m.media-amazon.com 可直连 */
 const IMDB_BAD_TYPES = ['video game', 'music artist', 'music video', 'podcast series', 'podcast episode'];
 
@@ -165,6 +178,11 @@ async function bgSearch(keyword, type) {
   }
   // 3) IMDb（真人影视； Bangumi 被墙时的主力来源）
   if (type === 'real') {
+    const seed = realPosterSeed(applyCorrection(keyword));
+    if (seed) {
+      return [{ id: seed.imdb, title: keyword, orig: seed.name || keyword,
+                poster: seed.poster, year: seed.year ? String(seed.year) : null, eps: null, src: 'imdb' }];
+    }
     const r3 = await imdbSuggest(keyword);
     if (r3.length) return r3;
   }
