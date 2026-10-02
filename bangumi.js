@@ -91,6 +91,43 @@ async function searchKitsu(keyword, kind) {
   return null;
 }
 
+/* ---------- IMDb 建议接口（真人影视） ---------- */
+/* v2.sg.media-imdb.com 无 CORS 头，经公共代理尽力而为；图床 m.media-amazon.com 可直连 */
+const IMDB_BAD_TYPES = ['video game', 'music artist', 'music video', 'podcast series', 'podcast episode'];
+
+async function imdbSuggest(keyword) {
+  if (healthSkipped('imdb')) return [];
+  const kw = (keyword || '').trim();
+  if (!kw) return [];
+  const first = kw.charAt(0).toLowerCase().replace(/[^\w]/, '') || 'x';
+  const api = 'https://v2.sg.media-imdb.com/suggestion/' + encodeURIComponent(first) + '/' + encodeURIComponent(kw) + '.json';
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await fetchT('https://api.allorigins.win/raw?url=' + encodeURIComponent(api), {}, 9000);
+      if (r.ok) {
+        const d = await r.json();
+        const results = ((d && d.d) || [])
+          .filter(x => x.l && x.i && x.i.imageUrl && !IMDB_BAD_TYPES.includes(x.q))
+          .map(x => ({
+            id: x.id,
+            title: x.l,
+            orig: x.l,
+            poster: x.i.imageUrl,
+            year: x.y ? String(x.y) : null,
+            eps: null,
+            src: 'imdb'
+          }));
+        if (results.length) {
+          setHealth('imdb', true);
+          return results;
+        }
+      }
+    } catch (e) { /* 公共代理不稳定，重试一次 */ }
+  }
+  setHealth('imdb', false);
+  return [];
+}
+
 async function bgSearch(keyword, type) {
   type = type || 'anime';
   const bt = BG_TYPE[type] || 2;
@@ -126,15 +163,20 @@ async function bgSearch(keyword, type) {
     const r2 = await searchBangumiDirect(keyword, bt);
     if (r2) return r2;
   }
-  // 3) Bangumi 经公共代理
-  if (!healthSkipped('allorigins')) {
-    const r3 = await searchBangumiProxy(keyword, bt);
-    if (r3) return r3;
+  // 3) IMDb（真人影视； Bangumi 被墙时的主力来源）
+  if (type === 'real') {
+    const r3 = await imdbSuggest(keyword);
+    if (r3.length) return r3;
   }
-  // 4) Kitsu 兜底（动漫/漫画）
+  // 4) Bangumi 经公共代理
+  if (!healthSkipped('allorigins')) {
+    const r4 = await searchBangumiProxy(keyword, bt);
+    if (r4) return r4;
+  }
+  // 5) Kitsu 兜底（动漫/漫画）
   if (type === 'anime' || type === 'manga') {
-    const r4 = await searchKitsu(keyword, type === 'manga' ? 'manga' : 'anime');
-    if (r4 && r4.length) return r4;
+    const r5 = await searchKitsu(keyword, type === 'manga' ? 'manga' : 'anime');
+    if (r5 && r5.length) return r5;
   }
   return [];
 }

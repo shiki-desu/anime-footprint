@@ -651,6 +651,17 @@ async function startFill() {
     if (missStreak >= 6) { missStreak = 0; await new Promise(r => setTimeout(r, 8000)); }
     else await new Promise(r => setTimeout(r, 1400));
   }
+  // —— 收尾：小说/漫画复用同分组系列封面（如"无职转生 全24卷"借用无职转生动画的封面）——
+  for (const e of state.entries) {
+    if (e.poster || (e.type !== 'novel' && e.type !== 'manga') || !e.group) continue;
+    const sib = state.entries.find(x => x.group === e.group && x.poster && (x.type === 'anime' || x.type === 'movie'));
+    if (sib) {
+      e.poster = sib.poster;
+      e.updatedAt = Date.now();
+      got++;
+    }
+  }
+
   save(); render();
   $('#fillBar').style.width = '100%';
   $('#btnFillStop').classList.add('hidden');
