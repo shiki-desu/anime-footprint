@@ -92,15 +92,16 @@ async function searchKitsu(keyword, kind) {
 }
 
 /* ---------- IMDb 建议接口（真人影视） ---------- */
-/* 预置海报种子（corrections.js 的 REAL_POSTERS，IMDb 直连预解析，稳定可靠） */
-function realPosterSeed(title) {
-  const map = window.REAL_POSTERS || {};
+/* 预置海报种子（corrections.js 的 REAL_POSTERS/SEEDED_POSTERS，IMDb/AniList 直连预解析） */
+function posterSeed(title) {
   const t = String(title || '').trim();
   if (!t) return null;
   const lower = t.toLowerCase();
-  for (const key of Object.keys(map)) {
-    const k = key.toLowerCase();
-    if (lower === k || lower.startsWith(k) || k.startsWith(lower)) return map[key];
+  for (const map of [window.REAL_POSTERS, window.SEEDED_POSTERS]) {
+    for (const key of Object.keys(map || {})) {
+      const k = key.toLowerCase();
+      if (lower === k || lower.startsWith(k) || k.startsWith(lower)) return map[key];
+    }
   }
   return null;
 }
@@ -145,6 +146,13 @@ async function bgSearch(keyword, type) {
   type = type || 'anime';
   const bt = BG_TYPE[type] || 2;
 
+  // 0) 内置海报种子优先（零网络依赖）
+  const seed = posterSeed(applyCorrection(keyword));
+  if (seed && seed.poster) {
+    return [{ id: seed.imdb || 'seed', title: keyword, orig: seed.name || keyword,
+              poster: seed.poster, year: seed.year ? String(seed.year) : null, eps: null, src: 'seed' }];
+  }
+
   // 0) 用户配置的镜像优先（国内网络推荐，见 README）；配置镜像后跳过直连与公共代理
   const mirror = bgMirror();
   if (mirror) {
@@ -178,11 +186,6 @@ async function bgSearch(keyword, type) {
   }
   // 3) IMDb（真人影视； Bangumi 被墙时的主力来源）
   if (type === 'real') {
-    const seed = realPosterSeed(applyCorrection(keyword));
-    if (seed) {
-      return [{ id: seed.imdb, title: keyword, orig: seed.name || keyword,
-                poster: seed.poster, year: seed.year ? String(seed.year) : null, eps: null, src: 'imdb' }];
-    }
     const r3 = await imdbSuggest(keyword);
     if (r3.length) return r3;
   }

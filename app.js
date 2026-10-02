@@ -817,10 +817,22 @@ async function startFill() {
   $('#btnFillStop').classList.remove('hidden');
   $('#fillWrap').classList.remove('hidden');
 
-  const isAni = e => e.type === 'anime' || e.type === 'movie';
-  const aniEntries = missing.filter(isAni);
-  const restEntries = missing.filter(e => !isAni(e));
+  // —— 零网络路径：内置海报种子（IMDb/AniList 预解析，真人影视等）——
   let got = 0;
+  for (const e of missing) {
+    const sp = posterSeed(applyCorrection(e.title));
+    if (sp && sp.poster) {
+      e.poster = sp.poster;
+      if (sp.imdb && String(sp.imdb).startsWith('tt')) e.bangumiId = null;
+      e.updatedAt = Date.now();
+      got++;
+    }
+  }
+  save();
+
+  const isAni = e => e.type === 'anime' || e.type === 'movie';
+  const aniEntries = missing.filter(e => !e.poster && isAni(e));
+  const restEntries = missing.filter(e => !e.poster && !isAni(e));
 
   // —— 快路径：本地中文索引 + AniList 批量封面（动漫/剧场版）——
   if (aniEntries.length) {

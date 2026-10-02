@@ -29,7 +29,7 @@ window.TITLE_CORRECTIONS = {
   "这个勇者明明超强却过分谨慎": "慎重勇者"
 };
 
-/* 真人影视海报种子：IMDb 直连预解析（不走公共代理，稳定可用） */
+/* 预置海报种子：IMDb/AniList 直连预解析（键 = 条目标题前缀，补全时零网络依赖） */
 window.REAL_POSTERS = {
  "西部世界 第三季": {
   "poster": "https://m.media-amazon.com/images/M/MV5BMjM2MTA5NjIwNV5BMl5BanBnXkFtZTgwNjI2OTMxNTM@._V1_.jpg",
@@ -162,5 +162,81 @@ window.REAL_POSTERS = {
   "imdb": "tt0756683",
   "name": "The Man from Earth",
   "year": 2007
+ },
+ "赛博朋克边缘行者": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx120377-ayZPoxiWt4Li.jpg",
+  "name": "Cyberpunk: Edgerunners"
+ },
+ "甲铁城的卡巴内利": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21196-2PfPfIDrxKki.jpg",
+  "name": "Kabaneri of the Iron Fortress"
+ },
+ "为冒号的世界献上炎爆": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx150075-QIGcA7oVyO6l.jpg",
+  "name": "KONOSUBA -An Explosion on This Wonderful World!"
+ },
+ "樱花下落的速度是秒五": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx1689-rJKhjLEjQHSy.jpg",
+  "name": "5 Centimeters per Second"
+ },
+ "哪吒 魔童降世": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx110464-gU0stanOBGIs.png",
+  "name": "Ne Zha"
+ },
+ "哪吒 魔童闹海": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx186861-3zhIhilJvbJz.jpg",
+  "name": "Ne Zha 2"
+ },
+ "谁杀死了勇者": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx148109-cwAINDGwAHB2.jpg",
+  "name": "The Legendary Hero is Dead!"
+ },
+ "闪光的哈撒韦 剧场版": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx105595-40ugr6S9NfOb.jpg",
+  "name": "Mobile Suit Gundam Hathaway"
+ },
+ "Fate系列 雪下的誓言": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b97757-BWFRkX81LpGS.png",
+  "name": "Fate/kaleid liner Prisma☆Illya: Vow in the Snow"
+ },
+ "炎拳": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx87170-nyuwcN7rU4pc.jpg",
+  "name": "Fire Punch"
+ },
+ "龙族 第一卷": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b154297-Y5dCU62hfbS4.jpg",
+  "name": "Dragon Raja II"
+ },
+ "全金属狂潮 第二卷": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30789-EKGcUecyNOm7.jpg",
+  "name": "Full Metal Panic"
+ },
+ "闪光的哈撒韦 小说": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx132002-dRNQFQ4BOg3A.jpg",
+  "name": "機動戦士ガンダム 閃光のハサウェイ"
+ },
+ "fate/typeRedline 第五卷": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx113981-ekewYcS9nTdJ.jpg",
+  "name": "帝都聖杯奇譚 Fate/type Redline"
+ },
+ "素晴 三季OVA": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21202-mPOr80AEjUcZ.png",
+  "name": "KONOSUBA -God's blessing on this wonderful world!"
+ },
+ "为美好的世界献上祝福！红传说": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx102976-2Yi5icRbjukO.png",
+  "name": "KONOSUBA -God's blessing on this wonderful world!- Legend of Crimson"
+ },
+ "靠废物技能异常状态 第一季": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx173694-XcwGOMBxboOO.png",
+  "name": "Failure Frame: I Became the Strongest and Annihilated Everything with Low-Level Spells"
+ },
+ "双城之战 第一季": {
+  "poster": "https://m.media-amazon.com/images/M/MV5BYjA2NzhlMDItNWRmZC00MzRjLWE3ZjAtZjBlZDAwOWY2ODdjXkEyXkFqcGc@._V1_.jpg",
+  "name": "Arcane"
+ },
+ "末日三问 第5卷": {
+  "poster": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx87285-XcV0VXkIEJvN.jpg",
+  "name": "終末なにしてますか? もう一度だけ、会えますか?"
  }
 };
